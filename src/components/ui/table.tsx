@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-2xl border border-[rgba(61,181,110,0.16)] bg-[rgba(26,61,43,0.3)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+    <div className="relative w-full overflow-auto rounded-2xl border border-border/60 bg-card/40 backdrop-blur-2xl shadow-[var(--shadow-md)]">
       <table
         ref={ref}
-        className={cn("w-full caption-bottom text-sm text-[var(--text-primary)]", className)}
+        className={cn("w-full caption-bottom text-sm text-foreground", className)}
         {...props}
       />
     </div>
@@ -20,7 +20,7 @@ const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
     <thead
       ref={ref}
       className={cn(
-        "[&_tr]:border-b [&_tr]:border-[rgba(61,181,110,0.18)] bg-[rgba(26,61,43,0.65)]/80",
+        "[&_tr]:border-b [&_tr]:border-border/60 bg-card/60",
         className,
       )}
       {...props}
@@ -48,7 +48,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        "border-b border-[rgba(61,181,110,0.18)] transition-colors data-[state=selected]:bg-[rgba(61,181,110,0.12)] hover:bg-[rgba(61,181,110,0.08)]",
+        "border-b border-border/60 transition-colors data-[state=selected]:bg-primary/10 hover:bg-muted/40",
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-12 px-4 text-left align-middle font-medium tracking-[0.08em] text-[11px] uppercase text-[var(--text-muted)] [&:has([role=checkbox])]:pr-0",
+        "h-12 px-4 text-left align-middle font-medium tracking-[0.08em] text-[11px] uppercase text-muted-foreground [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

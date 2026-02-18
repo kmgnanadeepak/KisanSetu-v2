@@ -9,6 +9,7 @@ import {
   Send,
   Loader2,
   Sprout,
+  Mic,
 } from "lucide-react";
 import { callAI } from "@/lib/callAI";
 import { toast } from "sonner";
@@ -19,6 +20,11 @@ interface Message {
   content: string;
   timestamp: Date;
 }
+
+const SpeechRecognitionAPI =
+  typeof window !== "undefined"
+    ? (window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition)
+    : null;
 
 const FloatingAgriChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,8 +38,40 @@ const FloatingAgriChatbot = () => {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<InstanceType<NonNullable<typeof SpeechRecognitionAPI>> | null>(null);
+
+  useEffect(() => {
+    if (!SpeechRecognitionAPI) return;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      setIsListening(false);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        toast.error("Microphone access denied. Please allow mic in browser settings.");
+      } else if (event.error !== "aborted" && event.error !== "no-speech") {
+        toast.error("Voice input failed. Try again.");
+      }
+    };
+    recognitionRef.current = recognition;
+    return () => {
+      try {
+        recognition.abort();
+      } catch {
+        /* ignore */
+      }
+      recognitionRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -44,6 +82,16 @@ const FloatingAgriChatbot = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const startVoiceInput = () => {
+    if (!SpeechRecognitionAPI || !recognitionRef.current || isLoading) return;
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+    } catch {
+      toast.error("Voice input is not available in this browser.");
+    }
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -101,7 +149,7 @@ const FloatingAgriChatbot = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-6 z-[9999] w-14 h-14 rounded-full bg-gradient-to-r from-[var(--leaf)] to-[var(--fresh)] text-white shadow-[0_8px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          className="fixed bottom-24 right-6 z-[9999] w-14 h-14 rounded-full bg-gradient-to-r from-[var(--leaf)] to-[var(--fresh)] text-primary-foreground shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] transition-all duration-300 hover:scale-110 flex items-center justify-center group"
           aria-label="Open agriculture chatbot"
         >
           <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -177,20 +225,33 @@ const FloatingAgriChatbot = () => {
 
               {/* Input Area */}
               <div className="border-t border-primary/20 p-4 bg-background/50">
-                <div className="flex gap-2">
-                  <Input
-                    ref={inputRef}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask about crops, soil, fertilizers..."
-                    className="flex-1 border-primary/30 focus:border-primary"
-                    disabled={isLoading}
-                  />
+                <div className="flex gap-2 items-center">
+                  <div className="relative flex-1 flex items-center">
+                    <Input
+                      ref={inputRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask about crops, soil, fertilizers..."
+                      className="flex-1 border-primary/30 focus:border-primary pr-10"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={`absolute right-1 h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 ${isListening ? "text-primary bg-primary/20 animate-pulse" : ""}`}
+                      onClick={startVoiceInput}
+                      disabled={!SpeechRecognitionAPI || isLoading}
+                      aria-label={isListening ? "Listening…" : "Start voice input"}
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
                     onClick={handleSend}
                     disabled={!inputValue.trim() || isLoading}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
                     size="icon"
                   >
                     {isLoading ? (
@@ -201,7 +262,7 @@ const FloatingAgriChatbot = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  I can help with agriculture-related questions only
+                  {SpeechRecognitionAPI ? "Type or tap 🎤 to speak • Agriculture questions only" : "I can help with agriculture-related questions only"}
                 </p>
               </div>
             </CardContent>

@@ -177,30 +177,19 @@ const Auth = () => {
   };
 
   const RoleIcon = role === "farmer" ? Leaf : role === "customer" ? Sprout : Store;
-  const roleColor =
-    role === "farmer"
-      ? "text-[var(--fresh)]"
-      : role === "customer"
-        ? "text-[var(--accent)]"
-        : "text-[var(--soil)]";
-  const roleBg =
-    role === "farmer"
-      ? "bg-[rgba(61,181,110,0.12)]"
-      : role === "customer"
-        ? "bg-[rgba(34,197,94,0.16)]"
-        : "bg-[rgba(196,160,104,0.16)]";
+  const roleColor = role === "farmer" ? "text-primary" : role === "customer" ? "text-success" : "text-accent";
+  const roleBg = role === "farmer" ? "bg-primary/10" : role === "customer" ? "bg-success/10" : "bg-accent/10";
 
   return (
     <div
-      className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ background: "radial-gradient(135deg, #0a1a10 0%, #060e09 100%)" }}
+      className="min-h-screen flex flex-col relative overflow-hidden hero-gradient"
     >
       {/* Ambient particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="absolute rounded-full bg-[rgba(61,181,110,0.08)] animate-float-particle"
+            className="absolute rounded-full bg-primary/5 animate-float-particle"
             style={{
               width: `${14 + i * 6}px`,
               height: `${14 + i * 6}px`,
@@ -223,8 +212,8 @@ const Auth = () => {
             onClick={() => navigate("/")}
             className="flex flex-col items-center gap-3 text-center hover:opacity-90 transition-opacity"
           >
-            <div className="w-12 h-12 rounded-full bg-[rgba(26,61,43,0.85)] flex items-center justify-center shadow-[0_0_32px_rgba(61,181,110,0.45)]">
-              <Sprout className="w-7 h-7 text-[var(--fresh)]" />
+            <div className="w-12 h-12 rounded-full bg-card/90 border border-border/60 flex items-center justify-center shadow-glow">
+              <Sprout className="w-7 h-7 text-primary" />
             </div>
             <div className="space-y-1">
               <p className="text-lg font-semibold font-display tracking-tight text-[var(--text-primary)]">
@@ -263,7 +252,7 @@ const Auth = () => {
 
               <CardContent className="px-9 pb-9 pt-2 md:px-10 md:pb-10">
                 <Tabs defaultValue="login" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6 bg-[rgba(26,61,43,0.7)] border border-[rgba(61,181,110,0.25)]">
+                  <TabsList className="grid w-full grid-cols-2 mb-6 glass-subtle border border-border/60">
                     <TabsTrigger value="login" className="data-[state=active]:text-[var(--text-primary)]">
                       Login
                     </TabsTrigger>

@@ -6,9 +6,9 @@ const SplashScreen = () => {
         className="absolute inset-0 splash-overlay"
         style={{
           background:
-            "radial-gradient(135deg, #0a1a10 0%, #060e09 100%), " +
-            "repeating-linear-gradient(0deg, rgba(61,181,110,0.05) 0px, rgba(61,181,110,0.05) 1px, transparent 1px, transparent 48px), " +
-            "repeating-linear-gradient(90deg, rgba(61,181,110,0.04) 0px, rgba(61,181,110,0.04) 1px, transparent 1px, transparent 48px)",
+            "var(--gradient-hero), " +
+            "repeating-linear-gradient(0deg, var(--border-soft) 0px, var(--border-soft) 1px, transparent 1px, transparent 48px), " +
+            "repeating-linear-gradient(90deg, var(--border-soft) 0px, var(--border-soft) 1px, transparent 1px, transparent 48px)",
         }}
       />
 
@@ -49,10 +49,10 @@ const SplashScreen = () => {
           {/* Halo + logo core */}
           <div className="relative splash-logo-float">
             <div className="absolute inset-[-40px] rounded-full bg-primary/15 blur-3xl splash-halo" />
-            <div className="absolute inset-[-20px] rounded-full border border-[rgba(61,181,110,0.45)] splash-halo" />
+              <div className="absolute inset-[-20px] rounded-full border border-primary/40 splash-halo" />
 
             <div className="relative splash-logo-core">
-              <div className="w-28 h-28 rounded-full glass-card flex items-center justify-center border border-primary/40 shadow-[0_0_60px_rgba(61,181,110,0.6)]">
+              <div className="w-28 h-28 rounded-full glass-card flex items-center justify-center border border-primary/40 shadow-glow-lg">
                 <span className="text-4xl text-primary-foreground">🌱</span>
               </div>
             </div>

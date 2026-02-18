@@ -10,20 +10,20 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "btn-primary-gradient shadow-[0_8px_24px_rgba(0,0,0,0.45)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)]",
+          "btn-primary-gradient shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
         outline:
-          "border border-[rgba(61,181,110,0.35)] bg-transparent text-[var(--mist)] hover:border-[rgba(61,181,110,0.6)] hover:bg-[rgba(61,181,110,0.08)]",
+          "border border-border bg-transparent text-foreground hover:bg-muted/50 hover:border-border",
         secondary:
-          "bg-[rgba(26,61,43,0.4)] text-[var(--text-secondary)] hover:bg-[rgba(26,61,43,0.7)] hover:text-[var(--mist)]",
-        ghost: "bg-transparent text-[var(--text-secondary)] hover:bg-[rgba(61,181,110,0.08)] hover:text-[var(--mist)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
         link: "text-[var(--fresh)] underline-offset-4 hover:text-[var(--lime)] hover:underline",
         farmer:
-          "bg-gradient-to-r from-[var(--leaf)] to-[var(--fresh)] text-[var(--mist)] shadow-md hover:shadow-glow hover:-translate-y-0.5",
+          "bg-gradient-to-r from-[var(--leaf)] to-[var(--fresh)] text-primary-foreground shadow-md hover:shadow-glow hover:-translate-y-0.5",
         merchant:
-          "bg-gradient-to-r from-[var(--earth)] to-[var(--soil)] text-[var(--cream)] shadow-md hover:shadow-lg hover:-translate-y-0.5",
+          "bg-gradient-to-r from-[var(--earth)] to-[var(--soil)] text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5",
         success:
-          "bg-[var(--fresh)] text-[var(--mist)] hover:bg-[rgba(61,181,110,0.9)] shadow-md hover:shadow-glow",
+          "bg-success text-success-foreground hover:bg-success/90 shadow-md hover:shadow-glow",
       },
       size: {
         default: "h-10 px-4 py-2",

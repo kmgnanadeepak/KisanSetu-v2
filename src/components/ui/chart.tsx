@@ -45,13 +45,13 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-xs rounded-2xl bg-[rgba(26,61,43,0.35)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] border border-[rgba(61,181,110,0.18)] animate-fade-in",
-          "[&_.recharts-cartesian-axis-tick_text]:fill-[var(--text-muted)]",
-          "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-[rgba(61,181,110,0.18)]",
-          "[&_.recharts-curve.recharts-tooltip-cursor]:stroke-[rgba(61,181,110,0.35)]",
-          "[&_.recharts-radial-bar-background-sector]:fill-[rgba(26,61,43,0.6)]",
-          "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-[rgba(61,181,110,0.1)]",
-          "[&_.recharts-reference-line_[stroke='#ccc']]:stroke-[rgba(61,181,110,0.25)]",
+          "flex aspect-video justify-center text-xs rounded-2xl bg-card/40 backdrop-blur-2xl shadow-[var(--shadow-md)] border border-border/60 animate-fade-in",
+          "[&_.recharts-cartesian-axis-tick_text]:fill-[var(--text-secondary)]",
+          "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-[var(--border-soft)]",
+          "[&_.recharts-curve.recharts-tooltip-cursor]:stroke-[var(--text-secondary)]",
+          "[&_.recharts-radial-bar-background-sector]:fill-[var(--bg-glass)]",
+          "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-[var(--bg-surface)]",
+          "[&_.recharts-reference-line_[stroke='#ccc']]:stroke-[var(--border-soft)]",
           "[&_.recharts-sector[stroke='#fff']]:stroke-transparent",
           "[&_.recharts-layer]:outline-none [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className,

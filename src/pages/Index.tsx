@@ -49,8 +49,7 @@ const Index = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col relative"
-      style={{ background: "radial-gradient(135deg, #0a1a10 0%, #060e09 100%)" }}
+      className="min-h-screen flex flex-col relative hero-gradient"
     >
       {/* Ambient particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
