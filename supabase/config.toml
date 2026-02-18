@@ -1,0 +1,25 @@
+project_id = "kmmfltyphwtaillshbed"
+
+[functions.analyze-disease]
+enabled = true
+verify_jwt = false
+
+[functions.get-weather]
+enabled = true
+verify_jwt = false
+
+[functions.create-notification]
+enabled = true
+verify_jwt = false
+
+[functions.ai-recommendations]
+enabled = true
+verify_jwt = false
+
+[functions.generate-invoice]
+enabled = true
+verify_jwt = false
+
+[functions.weather-suggestions]
+enabled = true
+verify_jwt = false
