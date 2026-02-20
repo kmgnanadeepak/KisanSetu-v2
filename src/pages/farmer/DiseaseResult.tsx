@@ -6,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowLeft, 
-  Pill, 
-  Calculator, 
-  Droplets, 
-  MapPin, 
+import {
+  ArrowLeft,
+  Pill,
+  Calculator,
+  Droplets,
+  MapPin,
   Download,
   Leaf,
   AlertTriangle,
@@ -20,12 +20,12 @@ import {
   Navigation
 } from "lucide-react";
 
-// Mock disease data - in production, this would come from an AI model or database
+// Fallback disease data (symptom-based only) - prices come from API, not hardcoded
 const diseaseDatabase: Record<string, {
   name: string;
   description: string;
   severity: "low" | "medium" | "high";
-  treatments: { name: string; pricePerUnit: number; unit: string; dosagePerAcre: number }[];
+  treatments: { name: string; unit: string; dosagePerAcre: number }[];
   applicationGuide: { step: string; timing: string }[];
 }> = {
   "yellow_leaves": {
@@ -33,8 +33,8 @@ const diseaseDatabase: Record<string, {
     description: "Plants show yellowing of older leaves, starting from the tips and moving inward.",
     severity: "medium",
     treatments: [
-      { name: "Urea (46-0-0)", pricePerUnit: 450, unit: "kg", dosagePerAcre: 50 },
-      { name: "Ammonium Nitrate", pricePerUnit: 380, unit: "kg", dosagePerAcre: 40 },
+      { name: "Urea (46-0-0)", unit: "kg", dosagePerAcre: 50 },
+      { name: "Ammonium Nitrate", unit: "kg", dosagePerAcre: 40 },
     ],
     applicationGuide: [
       { step: "Apply fertilizer in the morning when soil is moist", timing: "Early morning" },
@@ -47,8 +47,8 @@ const diseaseDatabase: Record<string, {
     description: "Fungal infection causing brown or black spots on leaves with yellow halos.",
     severity: "high",
     treatments: [
-      { name: "Mancozeb Fungicide", pricePerUnit: 550, unit: "kg", dosagePerAcre: 2.5 },
-      { name: "Copper Oxychloride", pricePerUnit: 420, unit: "kg", dosagePerAcre: 3 },
+      { name: "Mancozeb Fungicide", unit: "kg", dosagePerAcre: 2.5 },
+      { name: "Copper Oxychloride", unit: "kg", dosagePerAcre: 3 },
     ],
     applicationGuide: [
       { step: "Remove and destroy infected leaves first", timing: "Before treatment" },
@@ -61,8 +61,8 @@ const diseaseDatabase: Record<string, {
     description: "Plants showing signs of stress that may be caused by multiple factors.",
     severity: "low",
     treatments: [
-      { name: "NPK 10-26-26", pricePerUnit: 1200, unit: "bag", dosagePerAcre: 2 },
-      { name: "Organic Compost", pricePerUnit: 300, unit: "kg", dosagePerAcre: 100 },
+      { name: "NPK 10-26-26", unit: "kg", dosagePerAcre: 2 },
+      { name: "Organic Compost", unit: "kg", dosagePerAcre: 100 },
     ],
     applicationGuide: [
       { step: "Assess soil moisture and drainage", timing: "First" },
@@ -83,9 +83,9 @@ const DiseaseResult = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { method, image, symptoms, aiAnalysis } = location.state || {};
-  
+
   const [landAcres, setLandAcres] = useState<number>(1);
-  
+
   // Use AI analysis if available, otherwise fallback to rule-based
   const getDiseaseInfo = () => {
     if (aiAnalysis) {
@@ -98,7 +98,7 @@ const DiseaseResult = () => {
         preventionTips: aiAnalysis.preventionTips || [],
       };
     }
-    
+
     if (method === "symptom" && symptoms?.length > 0) {
       const primarySymptom = symptoms[0];
       return diseaseDatabase[primarySymptom] || diseaseDatabase["default"];
@@ -109,12 +109,29 @@ const DiseaseResult = () => {
   const disease = getDiseaseInfo();
   const confidence = aiAnalysis?.confidence || (method === "image" ? "high" : "medium");
 
-  const calculateCosts = (treatment: typeof disease.treatments[0]) => {
-    const quantity = treatment.dosagePerAcre * landAcres;
-    const totalCost = treatment.pricePerUnit * quantity;
-    // Estimate profit based on saved crop value
-    const estimatedProfit = totalCost * 3; // Assuming treatment saves 3x its cost in crop value
-    return { quantity, totalCost, estimatedProfit };
+  const calculateCosts = (treatment: any) => {
+    // If pricing comes from API-enriched data (new format)
+    if (treatment.pricingAvailable !== undefined) {
+      return {
+        quantity: treatment.requiredQuantity || `${(treatment.dosagePerAcre || 0) * landAcres} ${treatment.unit || "kg"}`,
+        totalCost: treatment.totalCost != null ? treatment.totalCost * landAcres : null,
+        unitPrice: treatment.unitPrice,
+        currency: treatment.currency || "INR",
+        pricingAvailable: treatment.pricingAvailable,
+        estimatedProfit: treatment.totalCost != null ? treatment.totalCost * landAcres * 3 : null,
+      };
+    }
+
+    // Legacy fallback (symptom-based without API enrichment)
+    const qty = (treatment.dosagePerAcre || 0) * landAcres;
+    return {
+      quantity: `${qty.toFixed(2)} ${treatment.unit || "kg"}`,
+      totalCost: null,
+      unitPrice: null,
+      currency: "INR",
+      pricingAvailable: false,
+      estimatedProfit: null,
+    };
   };
 
   const handleDownloadPrescription = () => {
@@ -130,7 +147,7 @@ const DiseaseResult = () => {
         ...calculateCosts(t),
       })),
     };
-    
+
     // Create a simple text download for now
     const content = `
 KisanSetu Disease Prescription
@@ -142,15 +159,15 @@ Weather Conditions: ${prescription.weather}
 Land Area: ${landAcres} acres
 
 Recommended Treatments:
-${prescription.treatments.map(t => `
-- ${t.name}
-  Quantity: ${t.quantity.toFixed(2)} ${t.unit}
-  Cost: ₹${t.totalCost.toFixed(2)}
+${prescription.treatments.map((t: any) => `
+- ${t.product || t.name}
+  Quantity: ${t.quantity}
+  Cost: ${t.totalCost != null ? `₹${t.totalCost.toFixed(2)}` : "N/A"}
 `).join('')}
 
 Generated by KisanSetu - The Farmer's Bridge
     `.trim();
-    
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -189,14 +206,12 @@ Generated by KisanSetu - The Farmer's Bridge
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  disease.severity === "high" ? "bg-destructive/20" :
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disease.severity === "high" ? "bg-destructive/20" :
                   disease.severity === "medium" ? "bg-warning/20" : "bg-primary-lighter"
-                }`}>
-                  <Leaf className={`w-6 h-6 ${
-                    disease.severity === "high" ? "text-destructive" :
+                  }`}>
+                  <Leaf className={`w-6 h-6 ${disease.severity === "high" ? "text-destructive" :
                     disease.severity === "medium" ? "text-warning" : "text-primary"
-                  }`} />
+                    }`} />
                 </div>
                 <div>
                   <CardTitle className="text-xl">{disease.name}</CardTitle>
@@ -215,10 +230,9 @@ Generated by KisanSetu - The Farmer's Bridge
           <CardContent>
             <p className="text-muted-foreground">{disease.description}</p>
             <div className="mt-4 flex items-center gap-2">
-              <AlertTriangle className={`w-4 h-4 ${
-                disease.severity === "high" ? "text-destructive" :
+              <AlertTriangle className={`w-4 h-4 ${disease.severity === "high" ? "text-destructive" :
                 disease.severity === "medium" ? "text-warning" : "text-muted-foreground"
-              }`} />
+                }`} />
               <span className="text-sm capitalize">
                 Severity: <strong>{disease.severity}</strong>
               </span>
@@ -273,34 +287,49 @@ Generated by KisanSetu - The Farmer's Bridge
                 {/* Treatment Options */}
                 <div className="space-y-4">
                   <h4 className="font-semibold">Recommended Products</h4>
-                  {disease.treatments.map((treatment, index) => {
-                    const { quantity, totalCost, estimatedProfit } = calculateCosts(treatment);
+                  {disease.treatments.map((treatment: any, index: number) => {
+                    const costs = calculateCosts(treatment);
                     return (
-                      <div 
+                      <div
                         key={index}
                         className="p-4 rounded-xl bg-muted/50 border space-y-3"
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <h5 className="font-medium">{treatment.name}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              ₹{treatment.pricePerUnit} per {treatment.unit}
-                            </p>
+                            <h5 className="font-medium">{treatment.product || treatment.name}</h5>
+                            {costs.pricingAvailable && costs.unitPrice != null ? (
+                              <p className="text-sm text-muted-foreground">
+                                ₹{costs.unitPrice} per {treatment.unit || "kg"}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground italic">
+                                Pricing unavailable
+                              </p>
+                            )}
                           </div>
-                          <Badge variant="outline">Option {index + 1}</Badge>
+                          <div className="flex items-center gap-2">
+                            {!costs.pricingAvailable && (
+                              <Badge variant="secondary" className="text-xs">No price</Badge>
+                            )}
+                            <Badge variant="outline">Option {index + 1}</Badge>
+                          </div>
                         </div>
                         <div className="grid grid-cols-3 gap-4 pt-2 border-t">
                           <div>
                             <p className="text-xs text-muted-foreground">Required Qty</p>
-                            <p className="font-semibold">{quantity.toFixed(2)} {treatment.unit}</p>
+                            <p className="font-semibold">{costs.quantity}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Total Cost</p>
-                            <p className="font-semibold text-primary">₹{totalCost.toFixed(2)}</p>
+                            <p className="font-semibold text-primary">
+                              {costs.totalCost != null ? `₹${costs.totalCost.toFixed(2)}` : "—"}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Est. Savings</p>
-                            <p className="font-semibold text-success">₹{estimatedProfit.toFixed(2)}</p>
+                            <p className="font-semibold text-success">
+                              {costs.estimatedProfit != null ? `₹${costs.estimatedProfit.toFixed(2)}` : "—"}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -352,8 +381,8 @@ Generated by KisanSetu - The Farmer's Bridge
                     Weather Consideration
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Based on current weather (65% humidity, 20% rain chance), apply treatment 
-                    in early morning for best absorption. Avoid application if rain is expected 
+                    Based on current weather (65% humidity, 20% rain chance), apply treatment
+                    in early morning for best absorption. Avoid application if rain is expected
                     within 4 hours.
                   </p>
                 </div>
@@ -376,7 +405,7 @@ Generated by KisanSetu - The Farmer's Bridge
               <CardContent>
                 <div className="space-y-4">
                   {nearbyShops.map((shop) => (
-                    <div 
+                    <div
                       key={shop.id}
                       className="p-4 rounded-xl bg-muted/50 border hover:border-primary/50 transition-colors"
                     >
@@ -409,9 +438,9 @@ Generated by KisanSetu - The Farmer's Bridge
 
         {/* Back to Dashboard */}
         <div className="mt-8">
-          <Button 
-            variant="farmer" 
-            size="lg" 
+          <Button
+            variant="farmer"
+            size="lg"
             className="w-full"
             onClick={() => navigate("/farmer")}
           >

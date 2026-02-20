@@ -7,12 +7,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  ArrowLeft, 
-  Camera, 
-  FileText, 
-  Upload, 
-  Scan, 
+import {
+  ArrowLeft,
+  Camera,
+  FileText,
+  Upload,
+  Scan,
   AlertCircle,
   CheckCircle2,
   Loader2
@@ -48,21 +48,36 @@ const DiseaseDetection = () => {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Unsupported format. Please upload a JPEG, PNG, or WebP image.");
+      e.target.value = "";
+      return;
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Image is too large. Please upload an image smaller than 10 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const toggleSymptom = (symptomId: string) => {
-    setSelectedSymptoms(prev => 
-      prev.includes(symptomId) 
+    setSelectedSymptoms(prev =>
+      prev.includes(symptomId)
         ? prev.filter(s => s !== symptomId)
         : [...prev, symptomId]
     );
@@ -76,16 +91,16 @@ const DiseaseDetection = () => {
 
   const handleAnalyze = async () => {
     if (!canSubmit()) return;
-    
+
     setAnalyzing(true);
-    
+
     try {
       // Call AI-powered disease analysis via centralized backend
       const data = await callAI("disease-detection", {
         method: detectionMethod,
         imageBase64: detectionMethod === "image" ? imagePreview : null,
-        symptoms: detectionMethod === "symptom" 
-          ? selectedSymptoms.map(s => symptomOptions.find(o => o.id === s)?.label) 
+        symptoms: detectionMethod === "symptom"
+          ? selectedSymptoms.map(s => symptomOptions.find(o => o.id === s)?.label)
           : null,
       });
 
@@ -95,13 +110,13 @@ const DiseaseDetection = () => {
       }
 
       // Navigate to results page with AI analysis data
-      navigate("/farmer/disease-result", { 
-        state: { 
+      navigate("/farmer/disease-result", {
+        state: {
           method: detectionMethod,
           image: imagePreview,
           symptoms: selectedSymptoms,
           aiAnalysis: data.analysis,
-        } 
+        }
       });
     } catch (err) {
       console.error("Analysis error:", err);
@@ -135,8 +150,8 @@ const DiseaseDetection = () => {
             Select how you'd like to identify the disease. You must choose ONE method.
           </p>
 
-          <RadioGroup 
-            value={detectionMethod || ""} 
+          <RadioGroup
+            value={detectionMethod || ""}
             onValueChange={(value) => {
               setDetectionMethod(value as DetectionMethod);
               // Reset selections when method changes
@@ -194,7 +209,7 @@ const DiseaseDetection = () => {
         {detectionMethod && (
           <div className="mb-8 animate-fade-in">
             <h2 className="text-xl font-semibold mb-2">Step 2: Provide Input</h2>
-            
+
             {detectionMethod === "image" ? (
               <Card>
                 <CardHeader>
@@ -210,13 +225,13 @@ const DiseaseDetection = () => {
                   {imagePreview ? (
                     <div className="space-y-4">
                       <div className="relative rounded-xl overflow-hidden border-2 border-primary">
-                        <img 
-                          src={imagePreview} 
-                          alt="Selected leaf" 
+                        <img
+                          src={imagePreview}
+                          alt="Selected leaf"
                           className="w-full h-64 object-cover"
                         />
-                        <Button 
-                          variant="destructive" 
+                        <Button
+                          variant="destructive"
                           size="sm"
                           className="absolute top-2 right-2"
                           onClick={() => {
@@ -241,13 +256,13 @@ const DiseaseDetection = () => {
                           or drag and drop
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                          PNG, JPG up to 10MB
+                          JPG, PNG, or WebP — max 10 MB
                         </p>
                       </div>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/jpeg, image/png, image/webp"
+                        className="hidden"
                         onChange={handleImageSelect}
                       />
                     </label>
@@ -270,11 +285,10 @@ const DiseaseDetection = () => {
                     {symptomOptions.map((symptom) => (
                       <label
                         key={symptom.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedSymptoms.includes(symptom.id)
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedSymptoms.includes(symptom.id)
                             ? "border-accent bg-accent/10"
                             : "border-transparent bg-muted/50 hover:bg-muted"
-                        }`}
+                          }`}
                       >
                         <Checkbox
                           checked={selectedSymptoms.includes(symptom.id)}
@@ -302,7 +316,7 @@ const DiseaseDetection = () => {
         {/* Submit Button */}
         {detectionMethod && (
           <div className="animate-fade-in">
-            <Button 
+            <Button
               onClick={handleAnalyze}
               disabled={!canSubmit() || analyzing}
               variant={detectionMethod === "image" ? "farmer" : "merchant"}
@@ -325,7 +339,7 @@ const DiseaseDetection = () => {
             {!canSubmit() && (
               <div className="mt-4 flex items-center gap-2 text-sm text-destructive">
                 <AlertCircle className="w-4 h-4" />
-                {detectionMethod === "image" 
+                {detectionMethod === "image"
                   ? "Please upload an image to continue"
                   : "Please select at least one symptom"
                 }

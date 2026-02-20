@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mic, MicOff, Loader2, X } from "lucide-react";
+import { Mic, MicOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAI } from "@/lib/callAI";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+import VoiceResponseModal from "@/components/VoiceResponseModal";
 
 const VoiceAssistant = () => {
   const location = useLocation();
@@ -27,6 +28,7 @@ const VoiceAssistant = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [lastResponse, setLastResponse] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const isFarmerRoute = useMemo(
     () => location.pathname.startsWith("/farmer"),
@@ -44,6 +46,8 @@ const VoiceAssistant = () => {
     handleVoiceIntent(finalTranscript);
   }, [finalTranscript]);
 
+  // ---------- Mic Toggle ----------
+
   const handleMicToggle = () => {
     if (!isFarmerRoute) return;
 
@@ -59,21 +63,43 @@ const VoiceAssistant = () => {
       return;
     }
 
+    // Reset & open modal
     resetTranscript();
     setLastQuery("");
     setLastResponse("");
     setIsProcessing(false);
+    setModalOpen(true);
     startListening();
   };
+
+  // ---------- Modal close ----------
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    // Stop any ongoing TTS
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    // Stop listening if still active
+    if (isListening) {
+      stopListening();
+    }
+  };
+
+  const handleStopSpeech = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  // ---------- Intent handling ----------
 
   const handleVoiceIntent = async (text) => {
     const query = (text || "").toLowerCase();
 
-    // Try navigation shortcuts first
     const navigated = handleNavigationIntent(query);
     if (navigated) return;
 
-    // Otherwise, treat as crop advisory / disease query
     await handleCropAdvisory(text);
   };
 
@@ -148,8 +174,10 @@ const VoiceAssistant = () => {
       });
 
       if (!data.success) {
-        toast.error(data.error || "Unable to get crop advisory right now.");
+        const errMsg = data.error || "Unable to get crop advisory right now.";
+        setLastResponse(errMsg);
         setIsProcessing(false);
+        speak(errMsg, detectedLanguage.code);
         return;
       }
 
@@ -162,7 +190,7 @@ const VoiceAssistant = () => {
 
       const firstTreatment = treatments[0];
       const treatmentLine = firstTreatment
-        ? `You can try ${firstTreatment.name} with dosage ${firstTreatment.dosagePerAcre} ${firstTreatment.unit} per acre.`
+        ? `You can try ${firstTreatment.name || firstTreatment.product} with dosage ${firstTreatment.dosagePerAcre} per acre.`
         : "Please consult your local agronomist or input dealer for exact treatment and dosage.";
 
       const summary = `Based on your description, the likely problem is ${diseaseName}. The severity looks ${severity}. ${treatmentLine}`;
@@ -172,108 +200,54 @@ const VoiceAssistant = () => {
       speak(summary, detectedLanguage.code);
     } catch (err) {
       console.error("Voice assistant advisory error:", err);
-      toast.error(err instanceof Error ? err.message : "Something went wrong while getting advice.");
+      const errMsg = err instanceof Error ? err.message : "Sorry, I couldn't process your request.";
+      setLastResponse(errMsg);
       setIsProcessing(false);
+      speak(errMsg, detectedLanguage.code);
     }
   };
 
   if (!isFarmerRoute) return null;
 
-  const statusLabel = (() => {
-    if (!supported) return "Voice not supported";
-    if (error) return "Mic blocked";
-    if (isListening) return "Listening...";
-    if (isProcessing) return "Processing...";
-    if (isSpeaking) return "Speaking...";
-    if (transcript) return "Tap to confirm new query";
-    return "Tap to speak";
-  })();
-
   return (
-    <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-3">
-      {/* Status pill */}
-      <div className="glass-card rounded-2xl px-4 py-3 shadow-lg border border-primary/40 bg-background/80 backdrop-blur-sm max-w-xs text-xs sm:text-sm">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {isListening ? (
-              <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            ) : isProcessing ? (
-              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-            ) : isSpeaking ? (
-              <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-primary" />
-            ) : (
-              <span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-muted-foreground/40" />
-            )}
-            <div className="flex flex-col">
-              <span className="font-medium">
-                {statusLabel}
-              </span>
-              <span className="text-[11px] text-muted-foreground">
-                Language: {detectedLanguage.label || "Auto"}
-              </span>
-            </div>
-          </div>
-          {lastQuery && (
-            <button
-              type="button"
-              onClick={() => {
-                setLastQuery("");
-                setLastResponse("");
-              }}
-              className="p-1 rounded-full hover:bg-muted"
-            >
-              <X className="w-3 h-3 text-muted-foreground" />
-            </button>
-          )}
-        </div>
-
-        {/* Waveform when listening */}
-        {isListening && (
-          <div className="mt-2 flex items-end gap-1 h-4">
-            {[0, 1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className="w-1 rounded-full bg-primary animate-[bounce_1s_infinite]"
-                style={{
-                  animationDelay: `${i * 0.12}s`,
-                  animationDuration: "0.9s",
-                  height: `${6 + i * 2}px`,
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Last response preview */}
-        {lastResponse && (
-          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-3">
-            {lastResponse}
-          </p>
-        )}
-      </div>
+    <>
+      {/* Voice Response Modal */}
+      <VoiceResponseModal
+        isOpen={modalOpen}
+        onClose={handleCloseModal}
+        transcriptText={lastQuery || transcript}
+        aiResponseText={lastResponse}
+        isListening={isListening}
+        isLoading={isProcessing}
+        isSpeaking={isSpeaking}
+        detectedLanguage={detectedLanguage.label || "Auto"}
+        onStopSpeech={handleStopSpeech}
+      />
 
       {/* Floating mic button */}
-      <button
-        type="button"
-        onClick={handleMicToggle}
-        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-glow-lg border transition-all duration-200 ${
-          isListening
-            ? "bg-red-500 border-red-400 text-white"
-            : "bg-primary border-primary/60 text-primary-foreground"
-        }`}
-      >
-        {isProcessing ? (
-          <Loader2 className="w-6 h-6 animate-spin" />
-        ) : isListening ? (
-          <MicOff className="w-6 h-6" />
-        ) : (
-          <Mic className="w-6 h-6" />
-        )}
-        <span className="absolute -inset-1 rounded-full border border-primary/30 opacity-60 animate-ping" />
-      </button>
-    </div>
+      <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-3">
+        <button
+          type="button"
+          onClick={handleMicToggle}
+          className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-glow-lg border transition-all duration-200 ${isListening
+              ? "bg-red-500 border-red-400 text-white"
+              : "bg-primary border-primary/60 text-primary-foreground"
+            }`}
+        >
+          {isProcessing ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : isListening ? (
+            <MicOff className="w-6 h-6" />
+          ) : (
+            <Mic className="w-6 h-6" />
+          )}
+          {!modalOpen && (
+            <span className="absolute -inset-1 rounded-full border border-primary/30 opacity-60 animate-ping" />
+          )}
+        </button>
+      </div>
+    </>
   );
 };
 
 export default VoiceAssistant;
-

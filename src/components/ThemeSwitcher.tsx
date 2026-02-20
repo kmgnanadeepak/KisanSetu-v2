@@ -20,7 +20,7 @@ const icons = {
 };
 
 export const ThemeSwitcher = ({ mode, onModeChange }: ThemeSwitcherProps) => {
-  const Icon = icons[mode];
+  const Icon = icons[mode] || Monitor;
 
   return (
     <DropdownMenu>

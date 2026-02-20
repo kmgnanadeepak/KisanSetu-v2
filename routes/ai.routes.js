@@ -21,4 +21,3 @@ router.post("/agri-chat", chatAI);
 router.post("/chat", chat);
 
 export default router;
-
